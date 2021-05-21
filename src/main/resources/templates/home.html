@@ -1,0 +1,120 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <title>Início</title>
+    
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.2.1/css/bootstrap.min.css}" />
+
+    <script src="/webjars/jquery/jquery.min.js"></script>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="card" style="margin-top: 50px; margin-bottom: 50px;">
+            <h5 class="card-header">Configurações</h5>
+            <div class="card-body">
+                
+                <form method="POST" th:action="@{/config}" th:object="${config}" style="margin-top: 20px; margin-bottom: 50px;">            
+                
+                    <input type="hidden" th:field="*{id}" />
+                
+                    <div class="form-group">
+                        <label>API Url:</label>
+                        <input type="text" th:field="*{apiUrl}" placeholder="Url da API" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Token:</label>
+                        <input type="text" th:field="*{token}" placeholder="Token" class="form-control" />
+                    </div>
+                
+                    <div class="form-group">
+                        <input type="submit" th:value="Salvar" class="btn btn-primary" style="float: right !important;" />
+                    </div>        
+
+                </form>
+
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 50px; margin-bottom: 50px;">
+            <h5 class="card-header">Sensores de aproximação</h5>
+            <div class="card-body">
+
+                <a href="/sensor/add" class="btn btn-primary" style="float: right !important; margin-bottom: 20px;">Adicionar</a>
+
+                <table class="table table-striped" style="margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Serial</th>
+                            <th>Porta</th>
+                            <th>Modelo</th>
+                            <th>Descrição</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tr th:each="sensor : ${sensors}">
+                        <td th:text="${sensor.serial}"></td>
+                        <td th:text="${sensor.porta}"></td>
+                        <td th:text="${sensor.modelo}"></td>
+                        <td th:text="${sensor.descricao}"></td>
+                        <td>
+                            <div class="row">
+                                
+                                <form method="POST" th:action="@{/stop}" th:object="${sensorStop}" th:if="${sensor.iniciado}">
+                                    <input type="hidden" name="id" th:value="${sensor.id}" />
+                                    <input type="submit" th:value="Pausar" class="btn btn-outline-warning" style="margin-left: 10px;" />
+                                </form>
+        
+                                <form method="POST" th:action="@{/start}" th:object="${sensorStart}" th:if="${!sensor.iniciado}">
+                                    <input type="hidden" name="id" th:value="${sensor.id}" />
+                                    <input type="submit" th:value="Iniciar" class="btn btn-outline-primary" style="margin-left: 10px;" />
+                                </form>
+        
+                                <a th:href="@{/sensor/edit/{id}(id=${sensor.id})}" class="btn btn-outline-success" th:if="${!sensor.iniciado}" style="margin-left: 10px;">Editar</a>
+
+                                <a target="_blank" th:href="@{/sensor/monitor/{id}(id=${sensor.id})}" class="btn btn-outline-success" th:if="${sensor.iniciado}" style="margin-left: 10px;">Monitor</a>
+                                
+                                <form method="POST" th:action="@{/delete}" th:object="${sensorRemove}" th:if="${!sensor.iniciado}">
+                                    <input type="hidden" name="id" th:value="${sensor.id}" />
+                                    <input type="submit" th:value="Remover" class="btn btn-outline-danger" style="margin-left: 10px;" />
+                                </form>
+
+                                <form method="POST" th:action="@{/clearBuffer}" th:object="${sensorBuffer}" th:if="${!sensor.iniciado}">
+                                    <input type="hidden" name="id" th:value="${sensor.id}" />
+                                    <input type="submit" th:value="'Limpar buffer:' + ${sensor.totalBuffer}" class="btn btn-outline-primary" style="margin-left: 10px;" />
+                                </form>
+        
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+            </div>
+          </div>  
+
+        <div class="card" style="margin-top: 50px; margin-bottom: 50px;">
+            <h5 class="card-header">Logs</h5>
+            <div class="card-body" style="height: 500px; overflow-y: auto;">
+                <div th:each="log : ${logs}">
+                    <span th:text="${log}"></span>
+                    <br>
+                </div>                
+            </div>
+          </div>
+
+    </div>
+
+</body>
+
+</html>

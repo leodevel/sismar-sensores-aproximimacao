@@ -1,0 +1,25 @@
+CREATE TABLE IF NOT EXISTS sensores (
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	serial VARCHAR NOT NULL,
+	porta VARCHAR NOT NULL,
+	velocidadeDados INT NOT NULL,
+	bitsDados INT NOT NULL,
+	bitParada INT NOT NULL,
+	paridade INT NOT NULL,
+	modelo VARCHAR NOT NULL,
+	iniciarAutomaticamente BOOLEAN NOT NULL,
+	descricao VARCHAR NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sensor_distancias (
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	idSensor INT NOT NULL,
+	dataLeitura DATETIME  NOT NULL,
+	distancia DOUBLE NULL
+);
+
+CREATE TABLE IF NOT EXISTS config (
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	apiUrl VARCHAR NULL,
+	token VARCHAR NULL
+);

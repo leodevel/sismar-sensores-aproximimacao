@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <title>Sensor - Monitor</title>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.2.1/css/bootstrap.min.css}" />
+
+    <script src="/webjars/jquery/jquery.min.js"></script>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+
+    <script type="text/javascript">
+
+        var parts = window.location.pathname.split("/");
+        var id = parts[parts.length-1];
+
+        var socket = new SockJS('/websocket');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function (frame) {
+            
+            stompClient.subscribe('/topic/sensor/' + id + '/monitor', function (data) {
+                $("#logs").append("<span>" +  JSON.parse(data.body).dateTime + " - " + JSON.parse(data.body).message + "</span><br/>");
+                $("#logs").scrollTop($("#logs")[0].scrollHeight);
+            });
+
+            stompClient.subscribe('/topic/sensor/' + id + '/push', function (data) {
+                $("#push").append("<span>" + JSON.parse(data.body).dateTime + " - " + JSON.parse(data.body).message + "</span><br/>");
+                $("#push").scrollTop($("#push")[0].scrollHeight);
+            });
+
+        });
+
+    </script>
+
+</head>
+
+<body>
+
+    <div class="container">
+        
+        <div class="row">
+        
+            <div class="col-md-6">
+                <div class="card" style="margin-top: 50px; margin-bottom: 50px;">
+                    <h5 class="card-header">Monitor</h5>
+                    <div class="card-body" id="logs" style="line-height: 30px; height: 500px; overflow-y: auto;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card" style="margin-top: 50px; margin-bottom: 50px;">
+                    <h5 class="card-header">Push</h5>
+                    <div class="card-body" id="push" style="line-height: 30px; height: 500px; overflow-y: auto;">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>
