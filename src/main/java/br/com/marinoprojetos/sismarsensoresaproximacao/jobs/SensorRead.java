@@ -5,6 +5,10 @@ import java.time.LocalDateTime;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
+
 import br.com.marinoprojetos.sismarsensoresaproximacao.clients.SensorProximidadeClient;
 import br.com.marinoprojetos.sismarsensoresaproximacao.clients.SensorProximidadeMarcacaoClient;
 import br.com.marinoprojetos.sismarsensoresaproximacao.clients.SensorProximidadeStatusClient;
@@ -20,12 +24,8 @@ import br.com.marinoprojetos.sismarsensoresaproximacao.services.SerialUtilsServi
 import br.com.marinoprojetos.sismarsensoresaproximacao.services.UtilService;
 import br.com.marinoprojetos.sismarsensoresaproximacao.services.WebSocketSessionService;
 import br.com.marinoprojetos.sismarsensoresaproximacao.utils.Utils;
-import jssc.SerialPort;
-import jssc.SerialPortEvent;
-import jssc.SerialPortEventListener;
-import jssc.SerialPortException;
 
-public class SensorRead extends Thread implements SerialPortEventListener {
+public class SensorRead extends Thread implements SerialPortDataListener {
 
 	private SerialUtilsService serialUtilsService;
 	private LogService logService;
@@ -72,44 +72,9 @@ public class SensorRead extends Thread implements SerialPortEventListener {
 		this.buffer = "";
 		
 	}
-
-	@Override
-	public void serialEvent(SerialPortEvent spe) {
-		
-		if (spe.getEventType() == SerialPortEvent.RXCHAR) {
-
-            try {
-
-                byte[] responseBytes = serialPort.readBytes();
-                String response = new String(responseBytes);
-
-                if (response.isEmpty()) {
-                    return;
-                }                
-                
-				for (int i = 0; i < response.length(); i++) {
-
-					if (response.charAt(i) == 10) {
-						if (!utilService.isNullOrEmpty(buffer)) {
-							input(buffer.trim());
-						}
-						buffer = "";
-						continue;
-					}
-
-					buffer += response.substring(i, i + 1);
-
-				}
-
-            } catch (Exception ex) {
-            }
-
-        }
-		
-	}
 	
 	private void input(String data) {
-		
+
 		LocalDateTime dataLeitura = Utils.getNowUTC().withNano(0);
 		
 		if (dataLeituraAnterior != null && 
@@ -181,20 +146,13 @@ public class SensorRead extends Thread implements SerialPortEventListener {
 		
 		try {
 
-            serialPort = new SerialPort(sensor.getPorta());
+            serialPort = SerialPort.getCommPort(sensor.getPorta());
             serialPort.openPort();            
 
-        } catch (SerialPortException ex) {
-            
-        	if (ex.getExceptionType().equalsIgnoreCase("Port not found")) {
-                throw new Exception("Não foi possível abrir a porta serial "
-                        + sensor.getPorta() + ", pois não foi encontrada!", ex);
-            
-        	} else if (ex.getExceptionType().equalsIgnoreCase("Port busy")) {
-                throw new Exception("Não foi possível abrir a porta serial "
-                        + sensor.getPorta() + ", pois esta em uso em outro aplicativo!", ex);
-            
-        	}
+        } catch (Exception ex) {
+        	
+        	throw new Exception("Não foi possível abrir a porta serial "
+                    + sensor.getPorta(), ex);
             
         }
 		
@@ -203,7 +161,7 @@ public class SensorRead extends Thread implements SerialPortEventListener {
 	private void serialClose() {
 		if (serialPort != null) {
             try {
-            	serialPort.removeEventListener();
+            	serialPort.removeDataListener();
             	serialPort.closePort();
             } catch (Exception ex) {
             }
@@ -215,21 +173,21 @@ public class SensorRead extends Thread implements SerialPortEventListener {
 
         try {
 
-            serialPort.setParams(sensor.getVelocidadeDados(), 
+            serialPort.setComPortParameters(sensor.getVelocidadeDados(), 
             		sensor.getBitsDados(), 
             		sensor.getBitParada(), 
             		sensor.getParidade());
 
-            int mask = SerialPort.MASK_RXCHAR + SerialPort.MASK_CTS + SerialPort.MASK_DSR;
-            serialPort.setEventsMask(mask);
-
             if (flowControlModel) {
-                serialUtilsService.setFlowControlModel(SerialPort.FLOWCONTROL_NONE, serialPort);
+                serialUtilsService.setFlowControlModel(SerialPort.FLOW_CONTROL_DISABLED, serialPort);
             }
 
-            serialPort.addEventListener(this, SerialPort.MASK_RXCHAR);
+            serialPort.setDTR();
+            serialPort.setRTS();
+            
+            serialPort.addDataListener(this);
 
-        } catch (SerialPortException ex) {
+        } catch (Exception ex) {
             throw new Exception("A porta " + sensor.getPorta()
                     + " não suporta os parâmetros!", ex);
         
@@ -323,7 +281,6 @@ public class SensorRead extends Thread implements SerialPortEventListener {
 			try {
 				sensorProximidadeStatusClient.save(configService.getApiUrl(), sensorProximidadeStatus);
 			}catch(Exception ex) {
-				ex.printStackTrace();
 			}
 			
 			try {
@@ -358,6 +315,47 @@ public class SensorRead extends Thread implements SerialPortEventListener {
 		
 		sensorSend = null;
 		
+	}
+
+	@Override
+	public int getListeningEvents() {
+		return SerialPort.LISTENING_EVENT_DATA_AVAILABLE;
+	}	
+
+	@Override
+	public void serialEvent(SerialPortEvent spe) {
+
+		if (spe.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE) {
+			return;
+		}
+
+		try {
+
+			byte[] newData = new byte[serialPort.bytesAvailable()];
+			serialPort.readBytes(newData, newData.length);
+			String response = new String(newData);
+
+			if (response.isEmpty()) {
+				return;
+			}
+
+			for (int i = 0; i < response.length(); i++) {
+
+				if (response.charAt(i) == 10) {
+					if (!utilService.isNullOrEmpty(buffer)) {
+						input(buffer.trim());
+					}
+					buffer = "";
+					continue;
+				}
+
+				buffer += response.substring(i, i + 1);
+
+			}
+
+		} catch (Exception ex) {
+		}
+
 	}
 
 }
