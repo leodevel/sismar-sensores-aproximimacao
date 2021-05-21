@@ -9,9 +9,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -22,10 +25,12 @@ import org.springframework.stereotype.Service;
 
 import br.com.marinoprojetos.sismarsensoresaproximacao.dtos.LogDTO;
 import br.com.marinoprojetos.sismarsensoresaproximacao.dtos.SensorDTO;
+import br.com.marinoprojetos.sismarsensoresaproximacao.utils.Utils;
 
 @Service
 public class LogService {
 	
+	private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 	private final Logger LOG = LoggerFactory.getLogger(LogService.class);	
 	private static final Path DIR_LOGS = Paths.get("logs");
 	
@@ -47,9 +52,13 @@ public class LogService {
 		save(dateTime, msg, null);
 	}
 	
+	private String getLogFileName() {
+		return format.format(Date.from(Utils.getNowUTC().toInstant(ZoneOffset.UTC))) + ".log";
+	}
+	
 	public List<String> getLog() {
 		
-		File log = new File(DIR_LOGS.toFile(), "logs.log");
+		File log = new File(DIR_LOGS.toFile(), getLogFileName());
 		
 		if (!log.exists()) {
 			return new ArrayList<>();
@@ -76,7 +85,7 @@ public class LogService {
             dir.mkdirs();
         }
 
-        File log = new File(dir, "logs.log");
+        File log = new File(dir, getLogFileName());
 
         if (!log.exists()) {
             try {
