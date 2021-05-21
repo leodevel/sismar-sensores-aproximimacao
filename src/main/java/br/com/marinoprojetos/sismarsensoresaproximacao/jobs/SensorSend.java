@@ -53,6 +53,7 @@ public class SensorSend extends Thread {
 		
 		this.run = false;
 		this.distancias = sensorDistanciaService.findByIdSensor(sensor.getId());
+		
 		sendAll();
 		
 	}
@@ -119,7 +120,10 @@ public class SensorSend extends Thread {
         	sensorDistancia.setIdSensor(sensor.getId());
         	sensorDistancia.setDistancia(distancia);
         	
-        	sensorDistancia = sensorDistanciaService.save(sensorDistancia);        	
+        	if (configService.getConfig().isGravarDadosLocal()) {
+        		sensorDistancia = sensorDistanciaService.save(sensorDistancia);
+        	}
+        	
             distancias.add(sensorDistancia);
             
             notify();
@@ -165,7 +169,10 @@ public class SensorSend extends Thread {
     			
     			if (resposta.getStatus() == 200 && resposta.getSucesso()) {
     				
-    				sensorDistanciaService.delete(sensorDistancia);
+    				if (sensorDistancia.getId() != null) {
+    					sensorDistanciaService.delete(sensorDistancia);
+    				}
+    				
     				distancias.remove(0);
     				
     				if (webSocketSessionService.isTopicConnected("/topic/sensor/" + this.sensor.getId() + "/push")) {		

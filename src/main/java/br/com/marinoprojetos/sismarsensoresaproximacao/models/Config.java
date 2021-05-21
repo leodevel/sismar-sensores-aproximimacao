@@ -32,4 +32,7 @@ public class Config implements Serializable {
 	@Column(name = "token")
 	private String token;	
 	
+	@Column(name = "gravardadoslocal")
+	private boolean gravarDadosLocal;
+	
 }

@@ -21,7 +21,7 @@ import br.com.marinoprojetos.sismarsensoresaproximacao.services.SensorService;
 public class HomeController {
 
 	@Autowired
-	private SensorService sensorService;
+	private SensorService sensorService;	
 	
 	@Autowired
 	private SensorDistanciaService sensorDistanciaService;
