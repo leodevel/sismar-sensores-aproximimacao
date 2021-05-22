@@ -84,19 +84,8 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		
 		dataLeituraAnterior = dataLeitura;
 		
-		// atualiza a configuração do sensor e verifica se pode mandar os dados
-		if (dataUltimaAtualizacao == null || 
-				dataUltimaAtualizacao.isBefore(Utils.getNowUTC().minusSeconds(10))) {			
-			dataUltimaAtualizacao = Utils.getNowUTC();			
-			try {
-				sensorProximidade = sensorProximidadeClient
-						.findBySerial(configService.getApiUrl(), sensor.getSerial())
-						.getResposta();				
-			}catch(Exception ex) {}			
-		} 		
+		// verifica se pode mandar os dados
 		if (sensorProximidade != null && sensorProximidade.getCodBerco() == null) {
-			logService.addLog(Utils.getNowUTC(), sensor, "Sensor #" +
-					this.sensor.getSerial() + " pausado sem berço de atracação");
 			return;
 		}
 		
@@ -282,6 +271,17 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 				sensorProximidadeStatusClient.save(configService.getApiUrl(), sensorProximidadeStatus);
 			}catch(Exception ex) {
 			}
+			
+			// atualiza a configuração do sensor e verifica se pode mandar os dados
+			if (dataUltimaAtualizacao == null || 
+					dataUltimaAtualizacao.isBefore(Utils.getNowUTC().minusSeconds(10))) {			
+				dataUltimaAtualizacao = Utils.getNowUTC();			
+				try {
+					sensorProximidade = sensorProximidadeClient
+							.findBySerial(configService.getApiUrl(), sensor.getSerial())
+							.getResposta();				
+				}catch(Exception ex) {}			
+			}			
 			
 			try {
                 Thread.sleep(2000);
