@@ -1,6 +1,7 @@
 package br.com.marinoprojetos.sismarsensoresaproximacao.jobs;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -152,7 +153,51 @@ public class SensorSend extends Thread {
                 continue;
             }
             
-            SensorDistancia sensorDistancia = distancias.get(0);
+            List<SensorDistancia> distanciasSend = new ArrayList<>();
+            for (int i = 0; i < distancias.size(); i++) {
+            	distanciasSend.add(distancias.get(i));
+			}            
+            
+            List<SensorProximidadeMarcacao> marcacoes = distanciasSend.stream().map(sensorDistancia -> {			    	        
+    	        SensorProximidade sensor = new SensorProximidade();
+    			sensor.setSerial(this.sensor.getSerial());    			
+    			SensorProximidadeMarcacao marcacao = new SensorProximidadeMarcacao();
+    			marcacao.setSensorProximidade(sensor);
+    			marcacao.setDataLeitura(sensorDistancia.getDataLeitura());
+    			marcacao.setDistancia(sensorDistancia.getDistancia());    			
+    			return marcacao;			    			
+    		}).collect(Collectors.toList());            
+            
+            try {
+    			
+    			RespostaDTO<Boolean> resposta = sensorProximidadeMarcacaoClient
+    					.saveAll(configService.getApiUrl(), marcacoes);
+    			
+    			if (resposta.getStatus() == 200 && resposta.getSucesso()) {
+    				 				    	
+    				// remove do bd e da lista
+    				sensorDistanciaService.deleteAll(distanciasSend.stream()
+    						.filter(obj -> obj.getId() != null).collect(Collectors.toList()));
+    				distancias.removeAll(distanciasSend);		
+    				
+    				if (webSocketSessionService.isTopicConnected("/topic/sensor/" + this.sensor.getId() + "/push")) {		
+    					
+    					marcacoes.forEach(marcacao -> {
+    						
+    						simpMessagingTemplate.convertAndSend("/topic/sensor/" + this.sensor.getId() + "/push", 
+        							new LogDTO(marcacao.getDataLeitura(), (marcacao.getDistancia() == null ? "" : marcacao.getDistancia().toString()) ));
+    						
+    					});
+    					
+    				}
+    				
+    			}
+    			
+    		} catch(Exception ex) {    			
+    		}		
+            
+            
+            /*SensorDistancia sensorDistancia = distancias.get(0);
             
             SensorProximidade sensor = new SensorProximidade();
     		sensor.setSerial(this.sensor.getSerial());
@@ -185,7 +230,7 @@ public class SensorSend extends Thread {
     			}
     			
     		}catch(Exception ex) {
-    		}
+    		}*/
             
         }
 		
