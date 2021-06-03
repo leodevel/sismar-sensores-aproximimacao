@@ -95,9 +95,9 @@
                                     <input type="submit" th:value="Remover" class="btn btn-outline-danger" style="margin-left: 10px;" />
                                 </form>
 
-                                <form method="POST" th:action="@{/clearBuffer}" th:object="${sensorBuffer}" th:if="${!sensor.iniciado}">
+                                <form method="POST" th:action="@{/clearBuffer}" th:object="${sensorBuffer}">
                                     <input type="hidden" name="id" th:value="${sensor.id}" />
-                                    <input type="submit" th:value="'Limpar buffer:' + ${sensor.totalBuffer}" class="btn btn-outline-primary" style="margin-left: 10px;" />
+                                    <input type="submit" th:value="'Limpar buffer:' + ${sensor.totalBuffer}" class="btn btn-outline-primary" th:disabled="${sensor.iniciado}" style="margin-left: 10px;" />
                                 </form>
         
                             </div>

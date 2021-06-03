@@ -110,8 +110,13 @@ public class SensorSend extends Thread {
 	
 	public void close() {
 		this.run = false;
-        distancias.clear();
+        this.clear();
     }
+	
+	public void clear() {
+		distancias.clear();
+		sensorDistanciaService.deleteAllByIdSensor(sensor.getId());		
+	}
 	
 	public synchronized void add(LocalDateTime dataLeitura, Double distancia) {
         try {

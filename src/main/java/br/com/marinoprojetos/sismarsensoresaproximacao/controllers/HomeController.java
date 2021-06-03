@@ -30,7 +30,7 @@ public class HomeController {
 	private SensorReadService sensorReadService;
 		
 	@Autowired
-	private LogService logService;
+	private LogService logService;	
 	
 	@Autowired
 	private ConfigService configService;

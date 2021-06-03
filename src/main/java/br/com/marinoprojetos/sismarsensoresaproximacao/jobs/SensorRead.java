@@ -1,5 +1,6 @@
 package br.com.marinoprojetos.sismarsensoresaproximacao.jobs;
 
+import java.net.InetAddress;
 import java.time.LocalDateTime;
 
 import org.slf4j.Logger;
@@ -86,10 +87,11 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			return;
 		}
 		
-		dataLeituraAnterior = dataLeitura;
+		dataLeituraAnterior = dataLeitura;		
 		
 		// verifica se pode mandar os dados
-		if (sensorProximidade != null && sensorProximidade.getCodBerco() == null) {
+		if (sensorProximidade == null || sensorProximidade.getCodBerco() == null) {			
+			this.sensorSend.clear();			
 			return;
 		}		
 		
@@ -212,6 +214,12 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		
 		while(run) {
 			
+			String ip = null;
+			try {
+				InetAddress address = Utils.getLocalHostLANAddress();
+				ip = address.getHostAddress();
+			}catch(Exception ex) {}
+			
 			SensorProximidade sensorProximidade = new SensorProximidade();
 			sensorProximidade.setSerial(sensor.getSerial());
 			
@@ -219,6 +227,7 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			sensorProximidadeStatus.setDataHora(Utils.getNowUTC());
 			sensorProximidadeStatus.setSensorProximidade(sensorProximidade);
 			sensorProximidadeStatus.setStatusComunicacaoLaser(true);
+			sensorProximidadeStatus.setIp(ip);
 						
 			try {
 				
@@ -281,12 +290,13 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			// atualiza a configuração do sensor e verifica se pode mandar os dados
 			if (dataUltimaAtualizacao == null || 
 					dataUltimaAtualizacao.isBefore(Utils.getNowUTC().minusSeconds(10))) {			
-				dataUltimaAtualizacao = Utils.getNowUTC();			
+				dataUltimaAtualizacao = Utils.getNowUTC();
 				try {
-					sensorProximidade = sensorProximidadeClient
+					this.sensorProximidade = sensorProximidadeClient
 							.findBySerial(configService.getApiUrl(), sensor.getSerial())
 							.getResposta();				
-				}catch(Exception ex) {}			
+				}catch(Exception ex) {
+				}			
 			}			
 			
 			try {
