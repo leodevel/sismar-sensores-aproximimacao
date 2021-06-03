@@ -1,0 +1,2 @@
+#!/bin/sh
+java -jar sismar_sensores.jar server config.yml
