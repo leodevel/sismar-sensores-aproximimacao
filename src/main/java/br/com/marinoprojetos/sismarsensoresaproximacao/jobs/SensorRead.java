@@ -89,10 +89,12 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			return;
 		}
 		
+		logService.addLog(dataLeitura, sensor, "Porta " + sensor.getPorta() + " - Recebido - " + data);
+		
 		if (webSocketSessionService.isTopicConnected("/topic/sensor/" + sensor.getId() + "/monitor")) {		
 		
 			simpMessagingTemplate.convertAndSend("/topic/sensor/" + sensor.getId() + "/monitor", 
-					new LogDTO(Utils.getNowUTC(), data));
+					new LogDTO(dataLeitura, data));
 		
 		}
 		
