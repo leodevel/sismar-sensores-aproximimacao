@@ -2,6 +2,8 @@ package br.com.marinoprojetos.sismarsensoresaproximacao.jobs;
 
 import java.time.LocalDateTime;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -27,6 +29,8 @@ import br.com.marinoprojetos.sismarsensoresaproximacao.utils.Utils;
 
 public class SensorRead extends Thread implements SerialPortDataListener {
 
+	private final Logger LOG = LoggerFactory.getLogger(SensorRead.class);	
+	
 	private SerialUtilsService serialUtilsService;
 	private LogService logService;
 	private UtilService utilService;
@@ -87,9 +91,9 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		// verifica se pode mandar os dados
 		if (sensorProximidade != null && sensorProximidade.getCodBerco() == null) {
 			return;
-		}
+		}		
 		
-		logService.addLog(dataLeitura, sensor, "Porta " + sensor.getPorta() + " - Recebido - " + data);
+		LOG.info(sensor.getDescricao() + " - Porta " + sensor.getPorta() + " - Recebido: " + data);
 		
 		if (webSocketSessionService.isTopicConnected("/topic/sensor/" + sensor.getId() + "/monitor")) {		
 		
