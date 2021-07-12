@@ -25,5 +25,6 @@ public class SensorProximidadeStatus {
 	private boolean statusComunicacaoLaser;	
 	
 	private String ip;
+	private String ultimaLeitura;
 	
 }

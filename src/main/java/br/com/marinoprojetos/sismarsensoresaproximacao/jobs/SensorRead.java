@@ -49,6 +49,7 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 	private boolean run;
 	
 	private String buffer;
+	private String ultimaLeitura;
 	private LocalDateTime dataLeituraAnterior;
 	private LocalDateTime dataUltimaAtualizacao;
 	private SensorProximidade sensorProximidade;
@@ -79,6 +80,8 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 	}
 	
 	private void input(String data) {
+		
+		ultimaLeitura = data;
 
 		LocalDateTime dataLeitura = Utils.getNowUTC().withNano(0);
 		
@@ -223,11 +226,21 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			SensorProximidade sensorProximidade = new SensorProximidade();
 			sensorProximidade.setSerial(sensor.getSerial());
 			
+			LocalDateTime dataHora = Utils.getNowUTC().withNano(0);
+			
 			SensorProximidadeStatus sensorProximidadeStatus = new SensorProximidadeStatus();
-			sensorProximidadeStatus.setDataHora(Utils.getNowUTC());
+			sensorProximidadeStatus.setDataHora(dataHora);
 			sensorProximidadeStatus.setSensorProximidade(sensorProximidade);
 			sensorProximidadeStatus.setStatusComunicacaoLaser(true);
-			sensorProximidadeStatus.setIp(ip);
+			sensorProximidadeStatus.setIp(ip);						
+			
+			if (dataLeituraAnterior == null 
+					|| dataHora.minusSeconds(10).isBefore(dataLeituraAnterior)) {
+				sensorProximidadeStatus.setUltimaLeitura(null);
+			} else {
+				sensorProximidadeStatus.setUltimaLeitura(ultimaLeitura);
+			}
+			
 						
 			try {
 				

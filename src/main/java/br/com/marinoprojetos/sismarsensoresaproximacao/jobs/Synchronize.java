@@ -65,6 +65,7 @@ public class Synchronize {
 			sensorProximidadeStatus.setSensorProximidade(sensorProximidade);
 			sensorProximidadeStatus.setStatusComunicacaoLaser(false);
 			sensorProximidadeStatus.setIp(ip);
+			sensorProximidadeStatus.setUltimaLeitura(null);	
 			
 			try {
 				
