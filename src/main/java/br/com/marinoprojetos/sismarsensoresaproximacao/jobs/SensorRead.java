@@ -237,7 +237,10 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			if (dataLeituraAnterior == null 
 					|| dataHora.minusSeconds(10).isBefore(dataLeituraAnterior)) {
 				sensorProximidadeStatus.setUltimaLeitura(null);
+				System.out.println("caiu aqui para null");
 			} else {
+				System.out.println("caiu aqui sem null");
+				System.out.println(ultimaLeitura);
 				sensorProximidadeStatus.setUltimaLeitura(ultimaLeitura);
 			}
 			
@@ -296,6 +299,7 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			
 			// grava o status de comunicação com o laser
 			try {
+				System.out.println(sensorProximidadeStatus);
 				sensorProximidadeStatusClient.save(configService.getApiUrl(), sensorProximidadeStatus);
 			}catch(Exception ex) {
 			}
