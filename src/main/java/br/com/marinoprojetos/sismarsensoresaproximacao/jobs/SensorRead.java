@@ -1,9 +1,7 @@
 package br.com.marinoprojetos.sismarsensoresaproximacao.jobs;
 
 import java.net.InetAddress;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.Period;
 import java.time.temporal.ChronoUnit;
 
 import org.slf4j.Logger;
@@ -235,23 +233,12 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			sensorProximidadeStatus.setDataHora(dataHora);
 			sensorProximidadeStatus.setSensorProximidade(sensorProximidade);
 			sensorProximidadeStatus.setStatusComunicacaoLaser(true);
-			sensorProximidadeStatus.setIp(ip);						
-			
-			System.out.println("ultima leitura = " + ultimaLeitura);			
-			if (dataLeituraAnterior != null) {
-			System.out.println(dataHora.minusSeconds(10).isBefore(dataLeituraAnterior));
-			System.out.println(dataHora.minusSeconds(20).isBefore(dataLeituraAnterior));
-			}
-			System.out.println("datAtual = " + dataHora);
-			System.out.println("dataLeituraAnterior = " + dataLeituraAnterior);						
+			sensorProximidadeStatus.setIp(ip);													
 			
 			if (dataLeituraAnterior == null 
 					|| ChronoUnit.SECONDS.between(dataLeituraAnterior, dataHora) > 10) {
 				sensorProximidadeStatus.setUltimaLeitura(null);
-				System.out.println("caiu aqui para null");
 			} else {
-				System.out.println("caiu aqui sem null");
-				System.out.println(ultimaLeitura);
 				sensorProximidadeStatus.setUltimaLeitura(ultimaLeitura);
 			}
 			
@@ -310,7 +297,6 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			
 			// grava o status de comunicação com o laser
 			try {
-				System.out.println(sensorProximidadeStatus);
 				sensorProximidadeStatusClient.save(configService.getApiUrl(), sensorProximidadeStatus);
 			}catch(Exception ex) {
 			}
