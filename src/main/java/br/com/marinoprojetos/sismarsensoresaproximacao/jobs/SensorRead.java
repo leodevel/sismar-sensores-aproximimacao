@@ -235,8 +235,10 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			sensorProximidadeStatus.setIp(ip);						
 			
 			System.out.println("ultima leitura = " + ultimaLeitura);			
+			if (dataLeituraAnterior != null) {
 			System.out.println(dataHora.minusSeconds(10).isBefore(dataLeituraAnterior));
 			System.out.println(dataHora.minusSeconds(20).isBefore(dataLeituraAnterior));
+			}
 			System.out.println("datAtual = " + dataHora);
 			System.out.println("dataLeituraAnterior = " + dataLeituraAnterior);
 			
