@@ -1,7 +1,10 @@
 package br.com.marinoprojetos.sismarsensoresaproximacao.jobs;
 
 import java.net.InetAddress;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -240,10 +243,10 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			System.out.println(dataHora.minusSeconds(20).isBefore(dataLeituraAnterior));
 			}
 			System.out.println("datAtual = " + dataHora);
-			System.out.println("dataLeituraAnterior = " + dataLeituraAnterior);
+			System.out.println("dataLeituraAnterior = " + dataLeituraAnterior);						
 			
 			if (dataLeituraAnterior == null 
-					|| dataHora.minusSeconds(10).isBefore(dataLeituraAnterior)) {
+					|| ChronoUnit.SECONDS.between(dataLeituraAnterior, dataHora) > 10) {
 				sensorProximidadeStatus.setUltimaLeitura(null);
 				System.out.println("caiu aqui para null");
 			} else {
