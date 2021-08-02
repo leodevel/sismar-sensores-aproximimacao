@@ -20,7 +20,10 @@ import br.com.marinoprojetos.sismarsensoresaproximacao.dtos.LogDTO;
 import br.com.marinoprojetos.sismarsensoresaproximacao.dtos.SensorDTO;
 import br.com.marinoprojetos.sismarsensoresaproximacao.dtos.SensorProximidade;
 import br.com.marinoprojetos.sismarsensoresaproximacao.dtos.SensorProximidadeStatus;
+import br.com.marinoprojetos.sismarsensoresaproximacao.dtos.StatusSensorDTO;
+import br.com.marinoprojetos.sismarsensoresaproximacao.dtos.UltimaLeituraDTO;
 import br.com.marinoprojetos.sismarsensoresaproximacao.enums.ModeloSensor;
+import br.com.marinoprojetos.sismarsensoresaproximacao.enums.StatusComunicacaoSensor;
 import br.com.marinoprojetos.sismarsensoresaproximacao.services.ConfigService;
 import br.com.marinoprojetos.sismarsensoresaproximacao.services.LogService;
 import br.com.marinoprojetos.sismarsensoresaproximacao.services.SensorDistanciaService;
@@ -199,6 +202,32 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 	private boolean serialNotConnected() {
         return serialPort == null;
     }
+	
+	private void sendLogUltimaLeitura(String ultimaLeitura) {
+		
+		LocalDateTime dataHora = Utils.getNowUTC().withNano(0);
+		
+		if (webSocketSessionService.isTopicConnected("/topic/ultima-leitura-sensor")) {	
+			
+			simpMessagingTemplate.convertAndSend("/topic/ultima-leitura-sensor", 
+					new UltimaLeituraDTO(dataHora, sensor.getId(), (ultimaLeitura == null ? "" : ultimaLeitura)));
+			
+		}
+		
+	}
+	
+	private void sendLogStatus(StatusComunicacaoSensor status) {
+		
+		LocalDateTime dataHora = Utils.getNowUTC().withNano(0);
+		
+		if (webSocketSessionService.isTopicConnected("/topic/status-sensor")) {	
+			
+			simpMessagingTemplate.convertAndSend("/topic/status-sensor", 
+					new StatusSensorDTO(dataHora, sensor.getId(), status.getValue(), status.getClassValue()));
+			
+		}
+		
+	}
 
 	@Override
 	public void run() {
@@ -237,9 +266,15 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			
 			if (dataLeituraAnterior == null 
 					|| ChronoUnit.SECONDS.between(dataLeituraAnterior, dataHora) > 10) {
-				sensorProximidadeStatus.setUltimaLeitura(null);
+				
+				sensorProximidadeStatus.setUltimaLeitura(null);				
+				sendLogUltimaLeitura(null);
+				
 			} else {
-				sensorProximidadeStatus.setUltimaLeitura(ultimaLeitura);
+				
+				sensorProximidadeStatus.setUltimaLeitura(ultimaLeitura);				
+				sendLogUltimaLeitura(ultimaLeitura);
+				
 			}
 			
 						
@@ -285,7 +320,20 @@ public class SensorRead extends Thread implements SerialPortDataListener {
                     
                     sensorProximidadeStatus.setStatusComunicacaoLaser(false);
 
-                }
+                }                
+                
+                // envia o status
+                if (serialUtilsService.existPort(serialPort, sensor.getPorta())) {                	
+                	if (dataLeituraAnterior == null 
+        					|| ChronoUnit.SECONDS.between(dataLeituraAnterior, dataHora) > 10) {        				
+                		sendLogStatus(StatusComunicacaoSensor.SEM_COMUNICACAO);        				
+        			} else {        				
+        				sendLogStatus(StatusComunicacaoSensor.COMUNICANDO);        				        				
+        			}                	                	
+                } else {                	
+                	sendLogStatus(StatusComunicacaoSensor.PORTA_NAO_ENCONTRADA);        		                	
+                }                
+                
                 
             } catch (Exception ex) {
             	logService.addLog(Utils.getNowUTC(), sensor, ex.getMessage(), ex);
