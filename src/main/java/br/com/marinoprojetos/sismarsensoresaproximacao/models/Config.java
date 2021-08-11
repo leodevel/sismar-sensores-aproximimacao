@@ -35,4 +35,10 @@ public class Config implements Serializable {
 	@Column(name = "gravardadoslocal")
 	private boolean gravarDadosLocal;
 	
+	@Column(name = "osusername")
+	private String osUsername;
+
+	@Column(name = "ospassword")
+	private String osPassword;
+	
 }
