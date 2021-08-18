@@ -32,6 +32,7 @@ public class SensorController {
 	@Autowired
 	private SensorProximidadeClient sensorProximidadeClient;
 	
+	
 	@Autowired
 	private SensorReadService sensorReadService;
 	

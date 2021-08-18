@@ -3,7 +3,11 @@ package br.com.marinoprojetos.sismarsensoresaproximacao.jobs;
 import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
+import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -49,7 +53,8 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 	
 	private SerialPort serialPort;
 	private SensorDTO sensor;
-	private boolean reportLog;
+	private String port;
+	private Map<String, Boolean> reportLogByPorts;
 	private boolean run;
 	
 	private String buffer;
@@ -76,40 +81,21 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		this.sensorProximidadeStatusClient = beanFactory.getBean(SensorProximidadeStatusClient.class);
 		
 		this.sensor = sensor;
+		this.reportLogByPorts = new HashMap<>();		
+		
+		Stream.of(sensor.getPorta().split(";")).forEach(port -> {
+			if (port != null && !port.trim().isEmpty()) {
+				this.reportLogByPorts.put(port.trim(), false);
+			}			
+		});	
+		
 		this.run = false;
 		this.serialPort = null;
-		this.reportLog = false;
 		this.buffer = "";
 		
 	}
 	
-	private void input(String data) {
-		
-		ultimaLeitura = data;
-
-		LocalDateTime dataLeitura = Utils.getNowUTC().withNano(0);
-		
-		if (dataLeituraAnterior != null && 
-				(dataLeitura.isBefore(dataLeituraAnterior) || dataLeitura.isEqual(dataLeituraAnterior))) {
-			return;
-		}
-		
-		dataLeituraAnterior = dataLeitura;		
-		
-		// verifica se pode mandar os dados
-		if (sensorProximidade == null || sensorProximidade.getCodBerco() == null) {			
-			this.sensorSend.clear();			
-			return;
-		}		
-		
-		LOG.info(sensor.getDescricao() + " - Porta " + sensor.getPorta() + " - Recebido: " + data);
-		
-		if (webSocketSessionService.isTopicConnected("/topic/sensor/" + sensor.getId() + "/monitor")) {		
-		
-			simpMessagingTemplate.convertAndSend("/topic/sensor/" + sensor.getId() + "/monitor", 
-					new LogDTO(dataLeitura, data));
-		
-		}
+	private Double getDistance(String data) {
 		
 		Double distancia = null;
 		
@@ -127,6 +113,18 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 					distancia = Double.parseDouble(data.split(",")[2].trim());
 				}
 
+			} else if (sensor.getModelo() == ModeloSensor.M_200) {
+				
+				if (data.startsWith("aa") && data.endsWith("ff") && data.length() == 10) {
+					
+					String partInteira = data.substring(2, 4);
+					String partDecimal = data.substring(4, 6);
+					
+					String value = Integer.parseInt(partInteira, 16) + "." + Integer.parseInt(partDecimal, 16);
+					distancia = Double.parseDouble(value);
+					
+				}			
+				
 			}
 
 		} catch (Exception ex) {
@@ -136,27 +134,59 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			distancia = Utils.round(distancia, 2);
 		}
 		
+		return distancia;
+		
+	}
+	
+	private void input(String data) {
+		
+		ultimaLeitura = data;
+
+		LocalDateTime dataLeitura = Utils.getNowUTC().withNano(0);
+		
+		if (dataLeituraAnterior != null && 
+				(dataLeitura.isBefore(dataLeituraAnterior) || dataLeitura.isEqual(dataLeituraAnterior))) {
+			return;
+		}
+		
+		dataLeituraAnterior = dataLeitura;		
+		
+		Double distancia = getDistance(data);
+		LOG.info(sensor.getDescricao() + " - Porta " + port + " - Recebido: " + data + " / " + distancia);
+		
+		if (webSocketSessionService.isTopicConnected("/topic/sensor/" + sensor.getId() + "/monitor")) {		
+			
+			simpMessagingTemplate.convertAndSend("/topic/sensor/" + sensor.getId() + "/monitor", 
+					new LogDTO(dataLeitura, data + " / " + distancia));
+		
+		}
+		
+		// verifica se pode mandar os dados
+		if (sensorProximidade == null || sensorProximidade.getCodBerco() == null) {			
+			this.sensorSend.clear();			
+			return;
+		}											
+		
 		if (sensorSend != null) {
 			sensorSend.add(dataLeitura, distancia);
 		}		
 		
 	}
 	
-	private void serialOpen() throws Exception {
+	private void serialOpen(String porta) throws Exception {
 		
-		if (!serialUtilsService.existPort(null, sensor.getPorta())) {
-            throw new Exception("Não foi possível localizar a porta serial " + sensor.getPorta());
+		if (!serialUtilsService.existPort(null, porta)) {
+            throw new Exception("Não foi possível localizar a porta serial " + porta);
         }
 		
 		try {
 
-            serialPort = SerialPort.getCommPort(sensor.getPorta());
+            serialPort = SerialPort.getCommPort(porta);
             serialPort.openPort();            
 
         } catch (Exception ex) {
         	
-        	throw new Exception("Não foi possível abrir a porta serial "
-                    + sensor.getPorta(), ex);
+        	throw new Exception("Não foi possível abrir a porta serial " + porta, ex);
             
         }
 		
@@ -173,7 +203,7 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		serialPort = null;
 	}
 	
-	private void serialConfig(boolean flowControlModel) throws Exception {
+	private void serialConfig(boolean flowControlModel, String porta) throws Exception {
 
         try {
 
@@ -192,8 +222,7 @@ public class SensorRead extends Thread implements SerialPortDataListener {
             serialPort.addDataListener(this);
 
         } catch (Exception ex) {
-            throw new Exception("A porta " + sensor.getPorta()
-                    + " não suporta os parâmetros!", ex);
+            throw new Exception("A porta " + porta + " não suporta os parâmetros!", ex);
         
         }
 
@@ -264,8 +293,7 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			sensorProximidadeStatus.setStatusComunicacaoLaser(true);
 			sensorProximidadeStatus.setIp(ip);													
 			
-			if (dataLeituraAnterior == null 
-					|| ChronoUnit.SECONDS.between(dataLeituraAnterior, dataHora) > 10) {
+			if (dataLeituraAnterior == null || ChronoUnit.SECONDS.between(dataLeituraAnterior, dataHora) > 10) {
 				
 				sensorProximidadeStatus.setUltimaLeitura(null);				
 				sendLogUltimaLeitura(null);
@@ -278,63 +306,53 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			}
 			
 						
-			try {
+			try {				
 				
-                if (serialUtilsService.existPort(serialPort, sensor.getPorta())) {
-
-                    if (serialNotConnected()) {
-
-                        try {
-
-                            serialOpen();
-                            serialConfig(true);
-                            
-                            logService.addLog(Utils.getNowUTC(), sensor, "Porta " + sensor.getPorta() + " aberta com sucesso!");
-                            reportLog = false;
-
-                        } catch (Exception ex) {
-                            if (!reportLog) {
-                            	logService.addLog(Utils.getNowUTC(), sensor, ex.getMessage(), ex);
-                                reportLog = true;
-                            }
-                            sensorProximidadeStatus.setStatusComunicacaoLaser(false);
-                            
-                        }
-
-                    }
-
-                } else {
-
-                    try {
-
-                        serialClose();
-
-                        if (!reportLog) {
-                        	logService.addLog(Utils.getNowUTC(), sensor, "Porta " + sensor.getPorta() + " não encontrada!");
-                            reportLog = true;
-                        }
-
-                    } catch (Exception ex) {
-                    	logService.addLog(Utils.getNowUTC(), sensor, ex.getMessage(), ex);
-                    }
-                    
-                    sensorProximidadeStatus.setStatusComunicacaoLaser(false);
-
-                }                
-                
-                // envia o status
-                if (serialUtilsService.existPort(serialPort, sensor.getPorta())) {                	
-                	if (dataLeituraAnterior == null 
-        					|| ChronoUnit.SECONDS.between(dataLeituraAnterior, dataHora) > 10) {        				
+				boolean portIsConnected = false;
+				
+				if (this.port != null) {					
+					portIsConnected = connectToPortSerial(this.port);					
+				}
+				
+				if (!portIsConnected) {							
+					String[] ports = reportLogByPorts.keySet().toArray(new String[] {});										
+					for(String port: ports) {	
+						if (this.port != null && this.port.equalsIgnoreCase(port)) {
+							continue;
+						}
+						portIsConnected = connectToPortSerial(port);						
+						if (portIsConnected) {
+							this.port = port;
+							break;
+						}												
+					}				
+				}
+				
+				// conectado na porta
+				if (portIsConnected) {
+					
+					if (dataLeituraAnterior == null || ChronoUnit.SECONDS.between(dataLeituraAnterior, dataHora) > 10) {        				
                 		sendLogStatus(StatusComunicacaoSensor.SEM_COMUNICACAO);        				
         			} else {        				
         				sendLogStatus(StatusComunicacaoSensor.COMUNICANDO);        				        				
-        			}                	                	
-                } else {                	
-                	sendLogStatus(StatusComunicacaoSensor.PORTA_NAO_ENCONTRADA);        		                	
-                }                
-                
-                
+        			}
+					
+				} else {
+					
+					if (this.port != null) {
+						String[] ports = reportLogByPorts.keySet().toArray(new String[] {});
+						for(String port: ports) {		
+							reportLogByPorts.put(port, false);
+						}
+					}
+					
+					this.port = null;										
+					sensorProximidadeStatus.setStatusComunicacaoLaser(false);
+					
+					sendLogStatus(StatusComunicacaoSensor.PORTA_NAO_ENCONTRADA);					
+					
+				}				
+			    
             } catch (Exception ex) {
             	logService.addLog(Utils.getNowUTC(), sensor, ex.getMessage(), ex);
             }
@@ -374,6 +392,58 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		
 	}
 	
+	
+	public boolean connectToPortSerial(String port) {
+		
+		if (serialUtilsService.existPort(serialPort, port)) {
+
+            if (serialNotConnected()) {
+
+                try {
+
+                    serialOpen(port);
+                    serialConfig(true, port);
+                    
+                    logService.addLog(Utils.getNowUTC(), sensor, "Porta " + port + " aberta com sucesso!");
+                    reportLogByPorts.put(port, false);                    
+                    
+                    return true;
+
+                } catch (Exception ex) {
+                    if (!reportLogByPorts.get(port)) {
+                    	logService.addLog(Utils.getNowUTC(), sensor, ex.getMessage(), ex);
+                    	reportLogByPorts.put(port, true);
+                    }
+                    return false;
+                    
+                }
+
+            }
+            
+            return true;
+
+        } else {
+
+            try {
+
+                serialClose();
+
+                if (!reportLogByPorts.get(port)) {
+                	logService.addLog(Utils.getNowUTC(), sensor, "Porta " + port + " não encontrada!");
+                	reportLogByPorts.put(port, true);
+                }
+
+            } catch (Exception ex) {
+            	logService.addLog(Utils.getNowUTC(), sensor, ex.getMessage(), ex);
+            }
+            
+            return false;
+
+        }		
+		
+	}
+	
+	
 	public void close() {
 		
 		run = false;
@@ -411,8 +481,26 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 
 			byte[] newData = new byte[serialPort.bytesAvailable()];
 			serialPort.readBytes(newData, newData.length);
+						
+			// laser da china
+			if (sensor.getModelo() == ModeloSensor.M_200) {
+				
+				String response = new String(Hex.encodeHexString(newData));
+				
+				if (response.isEmpty()) {
+					return;
+				}
+				
+				input(response);
+				buffer = "";
+				
+				return;
+				
+			}
+			
+			
 			String response = new String(newData);
-
+						
 			if (response.isEmpty()) {
 				return;
 			}
