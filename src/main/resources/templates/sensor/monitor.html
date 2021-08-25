@@ -14,6 +14,20 @@
     <script src="/webjars/sockjs-client/sockjs.min.js"></script>
     <script src="/webjars/stomp-websocket/stomp.min.js"></script>
 
+    <style>
+
+        .card-body{
+            height: 150px;
+        }
+
+        @media (max-width: 750px) {
+            .card-body{
+                height: 150px;
+            }
+        }
+
+    </style>
+
     <script type="text/javascript">
 
         var parts = window.location.pathname.split("/");
@@ -48,7 +62,7 @@
             <div class="col-md-6">
                 <div class="card" style="margin-top: 50px; margin-bottom: 50px;">
                     <h5 class="card-header">Monitor</h5>
-                    <div class="card-body" id="logs" style="line-height: 30px; height: 500px; overflow-y: auto;">
+                    <div class="card-body" id="logs" style="line-height: 30px; overflow-y: auto;">
                     </div>
                 </div>
             </div>
@@ -56,7 +70,7 @@
             <div class="col-md-6">
                 <div class="card" style="margin-top: 50px; margin-bottom: 50px;">
                     <h5 class="card-header">Push</h5>
-                    <div class="card-body" id="push" style="line-height: 30px; height: 500px; overflow-y: auto;">
+                    <div class="card-body" id="push" style="line-height: 30px; overflow-y: auto;">
                     </div>
                 </div>
             </div>
