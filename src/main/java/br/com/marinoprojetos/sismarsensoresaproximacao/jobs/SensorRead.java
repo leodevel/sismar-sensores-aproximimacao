@@ -141,7 +141,11 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 	private void input(String data) {
 		
 		ultimaLeitura = data;
-
+		Double distancia = getDistance(data);
+		
+		// grava no arquivo local
+		logService.output(data, distancia);
+		
 		LocalDateTime dataLeitura = Utils.getNowUTC().withNano(0);
 		
 		if (dataLeituraAnterior != null && 
@@ -149,9 +153,8 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 			return;
 		}
 		
-		dataLeituraAnterior = dataLeitura;		
+		dataLeituraAnterior = dataLeitura;				
 		
-		Double distancia = getDistance(data);
 		LOG.info(sensor.getDescricao() + " - Porta " + port + " - Recebido: " + data + " / " + distancia);
 		
 		if (webSocketSessionService.isTopicConnected("/topic/sensor/" + sensor.getId() + "/monitor")) {		

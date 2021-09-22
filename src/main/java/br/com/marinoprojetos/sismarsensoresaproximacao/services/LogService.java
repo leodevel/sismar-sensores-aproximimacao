@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,12 +34,48 @@ public class LogService {
 	private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 	private final Logger LOG = LoggerFactory.getLogger(LogService.class);	
 	private static final Path DIR_LOGS = Paths.get("logs");
+	private static final Path DIR_OUTPUT = Paths.get("output");
 	
 	@Autowired
 	private SimpMessagingTemplate simpMessagingTemplate;
 	
 	@Autowired
 	private WebSocketSessionService webSocketSessionService;
+	
+	public void output(String data, Double distancia) {
+
+		try {
+
+			LocalDateTime dataLeitura = LocalDateTime.now();
+
+			File dir = DIR_OUTPUT.toFile();
+
+			if (!dir.exists()) {
+				dir.mkdirs();
+			}
+
+			File out = new File(dir, getOutputFileName());
+
+			if (!out.exists()) {
+				try {
+					FileUtils.cleanDirectory(dir);
+					out.createNewFile();
+				} catch (IOException ex1) {
+				}
+			}
+
+			String txt = dataLeitura.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")) + ";" + data + ";"
+					+ distancia;
+
+			try {
+				Files.write(out.toPath(), (txt + "\r\n").getBytes(), StandardOpenOption.APPEND);
+			} catch (IOException ex1) {
+			}
+
+		} catch (Exception ex) {
+		}
+
+	}
 
 	public void addLog(LocalDateTime dateTime, SensorDTO sensor, String log, Exception ex) {		
 		String msg = dateTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")) + " - " + sensor.getDescricao() + ": " + log;
@@ -54,6 +91,10 @@ public class LogService {
 	
 	private String getLogFileName() {
 		return format.format(Date.from(Utils.getNowUTC().toInstant(ZoneOffset.UTC))) + ".log";
+	}
+	
+	private String getOutputFileName() {
+		return format.format(Date.from(Utils.getNowUTC().toInstant(ZoneOffset.UTC))) + ".txt";
 	}
 	
 	public List<String> getLog() {
