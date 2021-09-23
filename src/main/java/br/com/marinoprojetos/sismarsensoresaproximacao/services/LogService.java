@@ -64,11 +64,48 @@ public class LogService {
 				}
 			}
 
-			String txt = dataLeitura.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")) + ";" + data + ";"
+			String txt = dataLeitura.format(
+					DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")) + ";" + data + ";"
 					+ distancia;
 
 			try {
 				Files.write(out.toPath(), (txt + "\r\n").getBytes(), StandardOpenOption.APPEND);
+			} catch (IOException ex1) {
+			}
+
+		} catch (Exception ex) {
+		}
+
+	}
+	
+	public void resume(Double distancia) {
+
+		try {
+
+			LocalDateTime dataLeitura = LocalDateTime.now();
+
+			File dir = DIR_OUTPUT.toFile();
+
+			if (!dir.exists()) {
+				dir.mkdirs();
+			}
+
+			File out = new File(dir, getOutputFileName());
+
+			if (!out.exists()) {
+				try {
+					FileUtils.cleanDirectory(dir);
+					out.createNewFile();
+				} catch (IOException ex1) {
+				}
+			}
+
+			String txt = "\r\n======== " + dataLeitura.format(
+					DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")) + ";"
+					+ distancia + " ======== \r\n \r\n";
+
+			try {
+				Files.write(out.toPath(), txt.getBytes(), StandardOpenOption.APPEND);
 			} catch (IOException ex1) {
 			}
 

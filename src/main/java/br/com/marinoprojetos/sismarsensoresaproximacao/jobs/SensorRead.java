@@ -64,6 +64,9 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 	private SensorProximidade sensorProximidade;
 	
 	private SensorSend sensorSend;
+	
+	// temp ??
+	private Double distanciaValida = null;
 
 	public SensorRead(BeanFactory beanFactory, SensorDTO sensor) {
 		
@@ -81,7 +84,9 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		this.sensorProximidadeStatusClient = beanFactory.getBean(SensorProximidadeStatusClient.class);
 		
 		this.sensor = sensor;
-		this.reportLogByPorts = new HashMap<>();		
+		this.reportLogByPorts = new HashMap<>();	
+		
+		this.distanciaValida = null;
 		
 		Stream.of(sensor.getPorta().split(";")).forEach(port -> {
 			if (port != null && !port.trim().isEmpty()) {
@@ -143,6 +148,10 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		ultimaLeitura = data;
 		Double distancia = getDistance(data);
 		
+		if (distanciaValida == null || (distancia != null && distancia > distanciaValida)) {
+			distanciaValida = distancia;
+		}
+		
 		// grava no arquivo local
 		logService.output(data, distancia);
 		
@@ -152,6 +161,10 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 				(dataLeitura.isBefore(dataLeituraAnterior) || dataLeitura.isEqual(dataLeituraAnterior))) {
 			return;
 		}
+		
+		// grava no arquivo local
+		logService.resume(distanciaValida);
+		distanciaValida = null;
 		
 		dataLeituraAnterior = dataLeitura;				
 		
