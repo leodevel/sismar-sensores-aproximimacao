@@ -164,6 +164,7 @@ public class SensorRead extends Thread implements SerialPortDataListener {
 		
 		// grava no arquivo local
 		logService.resume(distanciaValida);
+		distancia = distanciaValida;
 		distanciaValida = null;
 		
 		dataLeituraAnterior = dataLeitura;				
