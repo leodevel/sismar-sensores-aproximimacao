@@ -32,6 +32,7 @@ import br.com.marinoprojetos.sismarsensoresaproximacao.utils.Utils;
 public class LogService {
 	
 	private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+	private static final SimpleDateFormat formatWithHour = new SimpleDateFormat("yyyy-MM-dd-HH");
 	private final Logger LOG = LoggerFactory.getLogger(LogService.class);	
 	private static final Path DIR_LOGS = Paths.get("logs");
 	private static final Path DIR_OUTPUT = Paths.get("output");
@@ -131,7 +132,7 @@ public class LogService {
 	}
 	
 	private String getOutputFileName() {
-		return format.format(Date.from(Utils.getNowUTC().toInstant(ZoneOffset.UTC))) + ".txt";
+		return formatWithHour.format(Date.from(Utils.getNowUTC().toInstant(ZoneOffset.UTC))) + ".txt";
 	}
 	
 	public List<String> getLog() {
