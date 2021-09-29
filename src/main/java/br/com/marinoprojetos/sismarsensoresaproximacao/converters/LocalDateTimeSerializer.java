@@ -15,7 +15,7 @@ public class LocalDateTimeSerializer extends JsonSerializer<LocalDateTime> {
         if (value == null) {
             gen.writeNull();
         } else {
-            gen.writeString(value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd H:mm:ss")));
+            gen.writeString(value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
     }
     
